@@ -11,8 +11,6 @@ import (
 
 const BUFFER_SIZE = 8
 const LINE_SEPARATOR = '\n'
-const NETWORK = "tcp"
-const ADDRESS = ":8080"
 
 func readLinesFromChannel(f io.ReadCloser) <-chan string {
 	out := make(chan string, 1)
@@ -76,6 +74,9 @@ func handleConnection(conn net.Conn) {
 
 	fmt.Printf("Connection closed from %s\n", conn.RemoteAddr().String())
 }
+
+const NETWORK = "tcp"
+const ADDRESS = ":8080"
 
 func main() {
 	listener, err := net.Listen(NETWORK, ADDRESS)
