@@ -55,15 +55,27 @@ outer:
 				return 0, err
 			}
 
+			read += n
+
 			if done {
-				r.state = STATE_DONE
+				// Technically, there are cases where a body can be present without
+				// a Content-Length header (e.g., Transfer-Encoding: chunked), but
+				// for simplicity, we only check for Content-Length here.
+				if r.Headers.Contains("Content-Length") {
+					r.state = STATE_BODY
+				} else {
+					r.state = STATE_DONE
+				}
+
+				break outer
 			}
 
 			if n == 0 {
 				break outer
 			}
 
-			read += n
+		case STATE_BODY:
+			r.state = STATE_DONE
 
 		case STATE_DONE:
 			break outer

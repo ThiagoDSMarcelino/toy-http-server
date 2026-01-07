@@ -18,6 +18,12 @@ func NewHeaders() Headers {
 	}
 }
 
+func (h Headers) Contains(key string) bool {
+	key = strings.ToLower(key)
+	_, exists := h.data[key]
+	return exists
+}
+
 func (h Headers) Get(key string) (string, bool) {
 	key = strings.ToLower(key)
 	value, exists := h.data[key]
@@ -52,29 +58,31 @@ func isValidKey(key []byte) bool {
 }
 
 func (h Headers) Parse(data []byte) (n int, done bool, err error) {
-	idx := bytes.Index(data, constants.LINE_SEPARATOR)
-	if idx == -1 {
-		return 0, false, nil
+	read := 0
+
+	for {
+		idx := bytes.Index(data[read:], constants.LINE_SEPARATOR)
+		if idx == -1 {
+			return read, false, nil
+		}
+
+		field := data[read : read+idx]
+		read += idx + len(constants.LINE_SEPARATOR)
+
+		if len(field) == 0 {
+			return read, true, nil
+		}
+
+		parts := bytes.SplitN(field, HEADER_SEPARATOR, 2)
+		if len(parts) != 2 {
+			return 0, false, MALFORMED_HEADER_ERROR
+		}
+
+		if !isValidKey(parts[0]) {
+			return 0, false, MALFORMED_HEADER_ERROR
+		}
+
+		value := bytes.TrimSpace(parts[1])
+		h.Set(string(parts[0]), string(value))
 	}
-
-	line := data[:idx]
-	read := idx + len(constants.LINE_SEPARATOR)
-
-	if len(line) == 0 {
-		return read, true, nil
-	}
-
-	parts := bytes.SplitN(line, HEADER_SEPARATOR, 2)
-	if len(parts) != 2 {
-		return 0, false, MALFORMED_HEADER_ERROR
-	}
-
-	if !isValidKey(parts[0]) {
-		return 0, false, MALFORMED_HEADER_ERROR
-	}
-
-	value := bytes.TrimSpace(parts[1])
-	h.Set(string(parts[0]), string(value))
-
-	return read, false, nil
 }

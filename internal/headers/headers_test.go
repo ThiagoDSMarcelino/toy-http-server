@@ -17,8 +17,8 @@ func TestHeadersParse(t *testing.T) {
 	value, exists := headers.Get("Host")
 	assert.True(t, exists)
 	assert.Equal(t, "localhost:8080", value)
-	assert.Equal(t, 22, n)
-	assert.False(t, done)
+	assert.Equal(t, 24, n)
+	assert.True(t, done)
 
 	// Test: Invalid spacing header
 	headers = NewHeaders()
@@ -36,15 +36,15 @@ func TestHeadersParse(t *testing.T) {
 	assert.Equal(t, 0, n)
 	assert.False(t, done)
 
-	// // Test: Header multiples equals field names
-	// headers = NewHeaders()
-	// data = []byte("Host: localhost:8080\r\nHost: localhost:8081\r\n\r\n")
-	// n, done, err = headers.Parse(data)
-	// require.NoError(t, err)
-	// require.NotNil(t, headers)
-	// value, exists = headers.Get("Host")
-	// assert.True(t, exists)
-	// assert.Equal(t, "localhost:8080, localhost:8081", value)
-	// assert.Equal(t, 23, n)
-	// assert.False(t, done)
+	// Test: Header multiples equals field names
+	headers = NewHeaders()
+	data = []byte("Host: localhost:8080\r\nHost: localhost:8081\r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	require.NotNil(t, headers)
+	value, exists = headers.Get("Host")
+	assert.True(t, exists)
+	assert.Equal(t, "localhost:8080, localhost:8081", value)
+	assert.Equal(t, 46, n)
+	assert.True(t, done)
 }
