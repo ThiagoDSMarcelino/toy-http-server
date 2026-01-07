@@ -55,9 +55,6 @@ outer:
 				return 0, err
 			}
 
-			fmt.Printf("Buffer: %s\n", data)
-			fmt.Printf("Len: %d | Read: %d | Done: %v\n", len(data), n, done)
-
 			if done {
 				r.state = STATE_DONE
 			}

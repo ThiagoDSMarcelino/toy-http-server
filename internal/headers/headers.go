@@ -34,6 +34,12 @@ func (h Headers) Set(key, value string) {
 	h.data[key] = value
 }
 
+func (h Headers) ForEach(f func(name string, value string)) {
+	for name, value := range h.data {
+		f(name, value)
+	}
+}
+
 var MALFORMED_HEADER_ERROR = fmt.Errorf("malformed header")
 
 var HEADER_SEPARATOR = []byte(":")

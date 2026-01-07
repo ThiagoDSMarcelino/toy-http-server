@@ -20,8 +20,12 @@ func handleConnection(conn net.Conn) {
 	fmt.Printf(" - Method: %s\n", r.RequestLine.Method)
 	fmt.Printf(" - Target: %s\n", r.RequestLine.RequestTarget)
 	fmt.Printf(" - Version: %s\n", r.RequestLine.HttpVersion)
+	fmt.Printf("Headers:\n")
+	r.Headers.ForEach(func(name, value string) {
+		fmt.Printf(" - %s: %s\n", name, value)
+	})
 
-	fmt.Fprintf(conn, "%s 200 OK\r\n\r\n", r.RequestLine.HttpVersion)
+	fmt.Fprintf(conn, "HTTP/%s 200 OK\r\n\r\n", r.RequestLine.HttpVersion)
 }
 
 const NETWORK = "tcp"
