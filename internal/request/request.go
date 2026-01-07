@@ -61,11 +61,11 @@ func (r *Request) done() bool {
 const BUFFER_SIZE = 4096
 
 func RequestFromReader(r io.Reader) (*Request, error) {
-	res := newRequest()
+	req := newRequest()
 	buffer := make([]byte, BUFFER_SIZE)
 	len := 0
 
-	for !res.done() {
+	for !req.done() {
 		readN, err := r.Read(buffer[len:])
 		if err != nil {
 			return nil, err
@@ -73,7 +73,7 @@ func RequestFromReader(r io.Reader) (*Request, error) {
 
 		len += readN
 
-		precessedN, err := res.parse(buffer[:len])
+		precessedN, err := req.parse(buffer[:len])
 		if err != nil {
 			return nil, err
 		}
@@ -82,5 +82,5 @@ func RequestFromReader(r io.Reader) (*Request, error) {
 		len -= precessedN
 	}
 
-	return res, nil
+	return req, nil
 }

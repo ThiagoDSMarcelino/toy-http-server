@@ -1,78 +1,27 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
-	"strings"
+	"toy-http-server/internal/request"
 )
-
-const BUFFER_SIZE = 8
-const LINE_SEPARATOR = '\n'
-
-func readLinesFromChannel(f io.ReadCloser) <-chan string {
-	out := make(chan string, 1)
-
-	go func() {
-		defer close(out)
-		defer f.Close()
-
-		line := strings.Builder{}
-		data := make([]byte, BUFFER_SIZE)
-		for {
-			n, err := f.Read(data)
-			if err != nil {
-				break
-			}
-
-			chunk := data[:n]
-			idx := bytes.IndexByte(chunk, LINE_SEPARATOR)
-
-			// no line separator found
-			if idx == -1 {
-				line.Write(chunk)
-				continue
-			}
-
-			line.Write(chunk[:idx])
-			out <- line.String()
-			line.Reset()
-
-			for {
-				chunk = chunk[idx+1:]
-				idx = bytes.IndexByte(chunk, LINE_SEPARATOR)
-
-				if idx == -1 {
-					line.Write(chunk)
-					break
-				}
-
-				line.Write(chunk[:idx])
-				out <- line.String()
-				line.Reset()
-			}
-		}
-
-		if line.Len() > 0 {
-			out <- line.String()
-		}
-	}()
-
-	return out
-}
 
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	fmt.Printf("Accepted connection from %s\n", conn.RemoteAddr().String())
-
-	for line := range readLinesFromChannel(conn) {
-		fmt.Printf("Received line: %s\n", line)
+	r, err := request.RequestFromReader(conn)
+	if err != nil {
+		slog.Error("failed to parse request", "error", err)
+		return
 	}
 
-	fmt.Printf("Connection closed from %s\n", conn.RemoteAddr().String())
+	fmt.Printf("Request line:\n")
+	fmt.Printf(" - Method: %s\n", r.RequestLine.Method)
+	fmt.Printf(" - Target: %s\n", r.RequestLine.RequestTarget)
+	fmt.Printf(" - Version: %s\n", r.RequestLine.HttpVersion)
+
+	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 }
 
 const NETWORK = "tcp"
