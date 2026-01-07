@@ -6,6 +6,16 @@ import (
 	"io"
 )
 
+type parseState int
+
+const (
+	STATE_INIT         = 0
+	STATE_REQUEST_LINE = 1
+	STATE_HEADERS      = 2
+	STATE_BODY         = 3
+	STATE_DONE         = 4
+)
+
 type RequestLine struct {
 	HttpVersion   string
 	RequestTarget string
@@ -14,12 +24,18 @@ type RequestLine struct {
 
 type Request struct {
 	RequestLine *RequestLine
+	state       parseState
+}
+
+func newRequest() *Request {
+	return &Request{
+		state: STATE_INIT,
+	}
 }
 
 // Theoretically, \n could be the separator as well if the first line ends with it, but for now we only support \r\n.
 var SEPARATOR = []byte("\r\n")
 
-var HTTP_VERSION_PREFIX = []byte("HTTP/")
 var VALID_METHODS = [][]byte{
 	[]byte("GET"),
 	[]byte("POST"),
@@ -30,6 +46,8 @@ var VALID_METHODS = [][]byte{
 	[]byte("PATCH"),
 	[]byte("TRACE"),
 }
+
+var HTTP_VERSION_PREFIX = []byte("HTTP/")
 var VALID_VERSIONS = [][]byte{
 	[]byte("1.1"),
 }
@@ -59,28 +77,27 @@ func isValidVersion(version []byte) bool {
 	return false
 }
 
-func parseRequestLine(buffer []byte) (requestLine *RequestLine, rest []byte, err error) {
+func parseRequestLine(data []byte) (requestLine *RequestLine, read int, err error) {
 	// SP = single space
 	// Request line format: <METHOD> <SP> <REQUEST_TARGET> <SP> HTTP/<VERSION>
-
-	before, after, found := bytes.Cut(buffer, SEPARATOR)
-	if !found {
-		return nil, after, MALFORMED_REQUEST_ERROR
+	idx := bytes.Index(data, SEPARATOR)
+	if idx == -1 {
+		return nil, 0, nil
 	}
 
-	parts := bytes.Split(before, []byte(" "))
+	parts := bytes.Split(data[:idx], []byte(" "))
 	if len(parts) != 3 {
-		return nil, after, MALFORMED_START_LINE_ERROR
+		return nil, 0, MALFORMED_START_LINE_ERROR
 	}
 
 	method := parts[0]
 	if !isValidMethod(method) {
-		return nil, after, INVALID_METHOD_ERROR
+		return nil, 0, INVALID_METHOD_ERROR
 	}
 
 	version := bytes.TrimPrefix(parts[2], HTTP_VERSION_PREFIX)
 	if !isValidVersion(version) {
-		return nil, after, INVALID_VERSION_ERROR
+		return nil, 0, INVALID_VERSION_ERROR
 	}
 
 	rl := RequestLine{
@@ -89,22 +106,63 @@ func parseRequestLine(buffer []byte) (requestLine *RequestLine, rest []byte, err
 		HttpVersion:   string(version),
 	}
 
-	return &rl, buffer[len(before)+len(SEPARATOR):], nil
+	return &rl, idx + len(SEPARATOR), nil
 }
 
+func (r *Request) parse(data []byte) (int, error) {
+	read := 0
+
+	switch r.state {
+	case STATE_INIT:
+		rl, n, err := parseRequestLine(data)
+		if err != nil {
+			return 0, err
+		}
+
+		if n == 0 {
+			break
+		}
+
+		r.RequestLine = rl
+		r.state = STATE_DONE
+		read += n
+
+	case STATE_DONE:
+		break
+
+	default:
+		return read, fmt.Errorf("invalid state")
+	}
+
+	return read, nil
+}
+
+func (r *Request) done() bool {
+	return r.state == STATE_DONE
+}
+
+const BUFFER_SIZE = 4096
+
 func RequestFromReader(r io.Reader) (*Request, error) {
-	buffer, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
+	res := newRequest()
+	buffer := make([]byte, BUFFER_SIZE)
+	len := 0
 
-	rl, _, err := parseRequestLine(buffer)
-	if err != nil {
-		return nil, err
-	}
+	for !res.done() {
+		readN, err := r.Read(buffer[len:])
+		if err != nil {
+			return nil, err
+		}
 
-	res := &Request{
-		RequestLine: rl,
+		len += readN
+
+		precessedN, err := res.parse(buffer[:len])
+		if err != nil {
+			return nil, err
+		}
+
+		copy(buffer, buffer[precessedN:len])
+		len -= precessedN
 	}
 
 	return res, nil
