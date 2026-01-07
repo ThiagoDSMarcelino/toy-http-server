@@ -33,7 +33,7 @@ func (cr *chunkReader) Read(p []byte) (n int, err error) {
 func TestRequestLineParse(t *testing.T) {
 	// Test: Good GET Request line
 	reader := &chunkReader{
-		data:            "GET / HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
+		data:            "GET / HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
 		numBytesPerRead: 3,
 	}
 	r, err := RequestFromReader(reader)
@@ -45,7 +45,7 @@ func TestRequestLineParse(t *testing.T) {
 
 	// Test: Good GET Request line with path
 	reader = &chunkReader{
-		data:            "GET /coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
+		data:            "GET /coffee HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
 		numBytesPerRead: 1,
 	}
 	r, err = RequestFromReader(reader)
@@ -56,6 +56,6 @@ func TestRequestLineParse(t *testing.T) {
 	assert.Equal(t, "1.1", r.RequestLine.HttpVersion)
 
 	// Test: Invalid number of parts in request line
-	_, err = RequestFromReader(strings.NewReader("/coffee HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"))
+	_, err = RequestFromReader(strings.NewReader("/coffee HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"))
 	require.Error(t, err)
 }

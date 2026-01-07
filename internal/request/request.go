@@ -3,6 +3,7 @@ package request
 import (
 	"fmt"
 	"io"
+	"toy-http-server/internal/headers"
 )
 
 type parseState int
@@ -16,39 +17,63 @@ const (
 )
 
 type Request struct {
-	RequestLine *RequestLine
+	RequestLine RequestLine
+	Headers     headers.Headers
 	state       parseState
 }
 
 func newRequest() *Request {
 	return &Request{
-		state: STATE_INIT,
+		state:   STATE_INIT,
+		Headers: headers.NewHeaders(),
 	}
 }
 
 func (r *Request) parse(data []byte) (int, error) {
 	read := 0
 
-	switch r.state {
-	case STATE_INIT:
-		rl, n, err := parseRequestLine(data)
-		if err != nil {
-			return 0, err
+outer:
+	for {
+		switch r.state {
+		case STATE_INIT:
+			rl, n, err := parseRequestLine(data)
+			if err != nil {
+				return 0, err
+			}
+
+			if n == 0 {
+				break outer
+			}
+
+			r.RequestLine = *rl
+			r.state = STATE_HEADERS
+			read += n
+
+		case STATE_HEADERS:
+			n, done, err := r.Headers.Parse(data[read:])
+			if err != nil {
+				return 0, err
+			}
+
+			fmt.Printf("Buffer: %s\n", data)
+			fmt.Printf("Len: %d | Read: %d | Done: %v\n", len(data), n, done)
+
+			if done {
+				r.state = STATE_DONE
+			}
+
+			if n == 0 {
+				break outer
+			}
+
+			read += n
+
+		case STATE_DONE:
+			break outer
+
+		default:
+			return read, fmt.Errorf("invalid state")
 		}
-
-		if n == 0 {
-			break
-		}
-
-		r.RequestLine = rl
-		r.state = STATE_DONE
-		read += n
-
-	case STATE_DONE:
-		break
-
-	default:
-		return read, fmt.Errorf("invalid state")
 	}
 
 	return read, nil

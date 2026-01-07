@@ -2,6 +2,7 @@ package request
 
 import (
 	"bytes"
+	constants "toy-http-server/internal"
 )
 
 type RequestLine struct {
@@ -49,7 +50,7 @@ func isValidVersion(version []byte) bool {
 func parseRequestLine(data []byte) (requestLine *RequestLine, read int, err error) {
 	// SP = single space
 	// Request line format: <METHOD> <SP> <REQUEST_TARGET> <SP> HTTP/<VERSION>
-	idx := bytes.Index(data, SEPARATOR)
+	idx := bytes.Index(data, constants.LINE_SEPARATOR)
 	if idx == -1 {
 		return nil, 0, nil
 	}
@@ -75,5 +76,5 @@ func parseRequestLine(data []byte) (requestLine *RequestLine, read int, err erro
 		HttpVersion:   string(version),
 	}
 
-	return &rl, idx + len(SEPARATOR), nil
+	return &rl, idx + len(constants.LINE_SEPARATOR), nil
 }

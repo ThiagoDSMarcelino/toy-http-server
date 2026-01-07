@@ -21,7 +21,7 @@ func handleConnection(conn net.Conn) {
 	fmt.Printf(" - Target: %s\n", r.RequestLine.RequestTarget)
 	fmt.Printf(" - Version: %s\n", r.RequestLine.HttpVersion)
 
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	fmt.Fprintf(conn, "%s 200 OK\r\n\r\n", r.RequestLine.HttpVersion)
 }
 
 const NETWORK = "tcp"
