@@ -10,6 +10,8 @@ import (
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	slog.Info("handling new connection", "remote_addr", conn.RemoteAddr().String())
+
 	r, err := request.FromReader(conn)
 	if err != nil {
 		slog.Error("failed to parse request", "error", err)
@@ -24,6 +26,8 @@ func handleConnection(conn net.Conn) {
 	r.Headers.ForEach(func(name, value string) {
 		fmt.Printf(" - %s: %s\n", name, value)
 	})
+	fmt.Printf("Body:\n")
+	fmt.Printf("%s\n", string(r.Body))
 
 	fmt.Fprintf(conn, "HTTP/%s 200 OK\r\n\r\n", r.RequestLine.HttpVersion)
 }
