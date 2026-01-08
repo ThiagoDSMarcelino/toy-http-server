@@ -85,16 +85,31 @@ outer:
 
 		case STATE_BODY:
 			cl, ok := r.Headers.GetInt(CONTENT_LENGTH_HEADER, 0)
-			if !ok {
+
+			if !ok || cl == 0 {
+				r.state = STATE_DONE
+				break outer
+			}
+
+			if cl < 0 {
 				return read, INVALID_CONTENT_LENGTH_ERROR
 			}
 
-			_, _, err := body.Parse(data, cl)
+			n, done, err := body.Parse(&r.Body, &data, cl)
 			if err != nil {
 				return read, err
 			}
 
-			r.state = STATE_DONE
+			if done {
+				r.state = STATE_DONE
+				break outer
+			}
+
+			if n == 0 {
+				break outer
+			}
+
+			read += n
 
 		case STATE_DONE:
 			break outer

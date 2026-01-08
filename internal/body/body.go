@@ -1,9 +1,20 @@
 package body
 
-import "fmt"
+func Parse(body, data *[]byte, contentLength int) (read int, done bool, err error) {
+	done = false
 
-func Parse(data []byte, n int) ([]byte, int, error) {
-	fmt.Printf("Buffer: %s\n", data)
+	remaining := contentLength - len(*body)
+	if remaining <= 0 {
+		return 0, true, nil
+	}
 
-	return data, 0, nil
+	read = min(remaining, len(*data))
+
+	*body = append(*body, (*data)[:read]...)
+
+	if len(*body) >= contentLength {
+		done = true
+	}
+
+	return read, done, nil
 }
