@@ -45,7 +45,7 @@ outer:
 
 		switch r.state {
 		case STATE_INIT:
-			rl, n, err := requestline.Parse(data)
+			rl, n, err := requestline.Parse(&data)
 			if err != nil {
 				return read, err
 			}
@@ -59,7 +59,7 @@ outer:
 			read += n
 
 		case STATE_HEADERS:
-			n, done, err := r.Headers.Parse(data)
+			n, done, err := r.Headers.Parse(&data)
 			if err != nil {
 				return read, err
 			}

@@ -72,16 +72,16 @@ func isValidKey(key []byte) bool {
 	return !bytes.HasPrefix(key, SPACE) && !bytes.HasSuffix(key, SPACE) && len(key) != 0 && VALID_KEY_CHARS_REGEX.Match(key)
 }
 
-func (h Headers) Parse(data []byte) (n int, done bool, err error) {
+func (h Headers) Parse(data *[]byte) (n int, done bool, err error) {
 	read := 0
 
 	for {
-		idx := bytes.Index(data[read:], constants.LINE_SEPARATOR)
+		idx := bytes.Index((*data)[read:], constants.LINE_SEPARATOR)
 		if idx == -1 {
 			return read, false, nil
 		}
 
-		field := data[read : read+idx]
+		field := (*data)[read : read+idx]
 		read += idx + len(constants.LINE_SEPARATOR)
 
 		if len(field) == 0 {

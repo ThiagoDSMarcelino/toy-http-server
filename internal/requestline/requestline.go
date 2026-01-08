@@ -59,13 +59,13 @@ func isValidVersion(version []byte) bool {
 //	<METHOD> <SP> <REQUEST_TARGET> <SP> HTTP/<VERSION>
 //
 // It returns the parsed RequestLine, the number of bytes read, and an error if the format is invalid.
-func Parse(data []byte) (requestLine *RequestLine, read int, err error) {
-	idx := bytes.Index(data, constants.LINE_SEPARATOR)
+func Parse(data *[]byte) (requestLine *RequestLine, read int, err error) {
+	idx := bytes.Index(*data, constants.LINE_SEPARATOR)
 	if idx == -1 {
 		return nil, 0, nil
 	}
 
-	parts := bytes.Split(data[:idx], []byte(" "))
+	parts := bytes.Split((*data)[:idx], []byte(" "))
 	if len(parts) != 3 {
 		return nil, 0, MALFORMED_START_LINE_ERROR
 	}
