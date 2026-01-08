@@ -41,11 +41,14 @@ func (r *Request) parse(data []byte) (int, error) {
 
 outer:
 	for {
-		data = data[read:]
+		currentData := data[read:]
 
 		switch r.state {
 		case STATE_INIT:
-			rl, n, err := requestline.Parse(&data)
+			r.state = STATE_REQUEST_LINE
+
+		case STATE_REQUEST_LINE:
+			rl, n, err := requestline.Parse(&currentData)
 			if err != nil {
 				return read, err
 			}
@@ -59,7 +62,7 @@ outer:
 			read += n
 
 		case STATE_HEADERS:
-			n, done, err := r.Headers.Parse(&data)
+			n, done, err := r.Headers.Parse(&currentData)
 			if err != nil {
 				return read, err
 			}
@@ -76,7 +79,7 @@ outer:
 					r.state = STATE_DONE
 				}
 
-				break outer
+				break
 			}
 
 			if n == 0 {
@@ -95,14 +98,14 @@ outer:
 				return read, INVALID_CONTENT_LENGTH_ERROR
 			}
 
-			n, done, err := body.Parse(&r.Body, &data, cl)
+			n, done, err := body.Parse(&r.Body, &currentData, cl)
 			if err != nil {
 				return read, err
 			}
 
 			if done {
 				r.state = STATE_DONE
-				break outer
+				break
 			}
 
 			if n == 0 {
