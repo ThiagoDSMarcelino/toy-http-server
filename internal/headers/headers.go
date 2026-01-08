@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	constants "toy-http-server/internal"
 )
@@ -28,6 +29,20 @@ func (h Headers) Get(key string) (string, bool) {
 	key = strings.ToLower(key)
 	value, exists := h.data[key]
 	return value, exists
+}
+
+func (h Headers) GetInt(key string, defaultValue int) (int, bool) {
+	valueStr, exists := h.Get(key)
+	if !exists {
+		return defaultValue, false
+	}
+
+	valueInt, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return defaultValue, false
+	}
+
+	return valueInt, true
 }
 
 func (h Headers) Set(key, value string) {

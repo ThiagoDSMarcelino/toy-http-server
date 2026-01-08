@@ -10,7 +10,7 @@ import (
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	r, err := request.RequestFromReader(conn)
+	r, err := request.FromReader(conn)
 	if err != nil {
 		slog.Error("failed to parse request", "error", err)
 		return

@@ -1,7 +1,8 @@
-package request
+package requestline
 
 import (
 	"bytes"
+	"fmt"
 	constants "toy-http-server/internal"
 )
 
@@ -27,6 +28,10 @@ var VALID_VERSIONS = [][]byte{
 	[]byte("1.1"),
 }
 
+var MALFORMED_START_LINE_ERROR = fmt.Errorf("malformed start line")
+var INVALID_METHOD_ERROR = fmt.Errorf("invalid method")
+var INVALID_VERSION_ERROR = fmt.Errorf("invalid version")
+
 func isValidMethod(method []byte) bool {
 	for _, m := range VALID_METHODS {
 		if bytes.Equal(method, m) {
@@ -47,9 +52,14 @@ func isValidVersion(version []byte) bool {
 	return false
 }
 
-func parseRequestLine(data []byte) (requestLine *RequestLine, read int, err error) {
-	// SP = single space
-	// Request line format: <METHOD> <SP> <REQUEST_TARGET> <SP> HTTP/<VERSION>
+// Parse reads and validates the HTTP request line from the given byte slice.
+//
+// It expects the standard format:
+//
+//	<METHOD> <SP> <REQUEST_TARGET> <SP> HTTP/<VERSION>
+//
+// It returns the parsed RequestLine, the number of bytes read, and an error if the format is invalid.
+func Parse(data []byte) (requestLine *RequestLine, read int, err error) {
 	idx := bytes.Index(data, constants.LINE_SEPARATOR)
 	if idx == -1 {
 		return nil, 0, nil

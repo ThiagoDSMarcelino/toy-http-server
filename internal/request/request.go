@@ -3,7 +3,9 @@ package request
 import (
 	"fmt"
 	"io"
+	"toy-http-server/internal/body"
 	"toy-http-server/internal/headers"
+	"toy-http-server/internal/requestline"
 )
 
 type parseState int
@@ -17,8 +19,9 @@ const (
 )
 
 type Request struct {
-	RequestLine RequestLine
+	RequestLine requestline.RequestLine
 	Headers     headers.Headers
+	Body        []byte
 	state       parseState
 }
 
@@ -29,16 +32,22 @@ func newRequest() *Request {
 	}
 }
 
+const CONTENT_LENGTH_HEADER = "Content-Length"
+
+var INVALID_CONTENT_LENGTH_ERROR = fmt.Errorf("invalid Content-Length value")
+
 func (r *Request) parse(data []byte) (int, error) {
 	read := 0
 
 outer:
 	for {
+		data = data[read:]
+
 		switch r.state {
 		case STATE_INIT:
-			rl, n, err := parseRequestLine(data)
+			rl, n, err := requestline.Parse(data)
 			if err != nil {
-				return 0, err
+				return read, err
 			}
 
 			if n == 0 {
@@ -50,9 +59,9 @@ outer:
 			read += n
 
 		case STATE_HEADERS:
-			n, done, err := r.Headers.Parse(data[read:])
+			n, done, err := r.Headers.Parse(data)
 			if err != nil {
-				return 0, err
+				return read, err
 			}
 
 			read += n
@@ -61,7 +70,7 @@ outer:
 				// Technically, there are cases where a body can be present without
 				// a Content-Length header (e.g., Transfer-Encoding: chunked), but
 				// for simplicity, we only check for Content-Length here.
-				if r.Headers.Contains("Content-Length") {
+				if r.Headers.Contains(CONTENT_LENGTH_HEADER) {
 					r.state = STATE_BODY
 				} else {
 					r.state = STATE_DONE
@@ -75,13 +84,23 @@ outer:
 			}
 
 		case STATE_BODY:
+			cl, ok := r.Headers.GetInt(CONTENT_LENGTH_HEADER, 0)
+			if !ok {
+				return read, INVALID_CONTENT_LENGTH_ERROR
+			}
+
+			_, _, err := body.Parse(data, cl)
+			if err != nil {
+				return read, err
+			}
+
 			r.state = STATE_DONE
 
 		case STATE_DONE:
 			break outer
 
 		default:
-			return read, fmt.Errorf("invalid state")
+			panic("invalid state")
 		}
 	}
 
@@ -94,7 +113,7 @@ func (r *Request) done() bool {
 
 const BUFFER_SIZE = 4096
 
-func RequestFromReader(r io.Reader) (*Request, error) {
+func FromReader(r io.Reader) (*Request, error) {
 	req := newRequest()
 	buffer := make([]byte, BUFFER_SIZE)
 	len := 0
